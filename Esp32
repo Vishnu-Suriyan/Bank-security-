@@ -1,0 +1,395 @@
+#include <ESP8266WiFi.h>
+
+#include <ESP8266HTTPClient.h>
+
+#include <WiFiClient.h>
+
+int x, y = 4, z;
+
+int p1, p2, p3, p4;
+
+String mailid;
+
+String se = "";
+
+const char* ssid = "hi";
+
+const char* password = "123456789";
+
+//Your Domain name with URL path or IP address with path
+
+String serverName = "http://hostabcd.xyz/p10voice/get.php";
+
+String id, name;
+
+String logtext;
+
+// the following variables are unsigned longs because the time, measured in
+
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+
+unsigned long stime = 0;
+
+unsigned long curenttime = 0;
+
+void setup() {
+
+  Serial.begin(9600);
+
+  WiFi.begin(ssid, password);
+
+  Serial.println("Connecting");
+
+  while (WiFi.status() != WL_CONNECTED) {
+
+    delay(500);
+
+    Serial.print(".");
+
+  }
+
+  Serial.println("");
+
+  Serial.print("Connected to WiFi network with IP Address: ");
+
+  Serial.println(WiFi.localIP());
+
+  Serial.println("Timer set to 5 seconds (timerDelay variable), it will take 5 seconds before publishing the first reading.");
+
+  stime = millis();
+
+  curenttime = stime;
+
+}
+
+void loop() {
+
+  while ((curenttime - stime) > 60000)
+
+  {
+
+    if (p1 == 0)
+
+    {
+
+      mailid = "mugeshrk1990@gmail.com";
+
+      upd1();
+
+    }
+
+    if (p2 == 0)
+
+    {
+
+      mailid = "kiwisxerox@gmail.com";
+
+      upd1();
+
+    }
+
+    if (p3 == 0)
+
+    {
+
+      mailid = "saranprakashsp5@gmail.com";
+
+      upd1();
+
+    }
+
+    Serial.print("time over");
+
+    int loopa=1;
+
+    while (loopa==1);
+
+  }
+
+  curenttime = millis();
+
+  if (Serial.available() > 0) {
+
+    char A = Serial.read();
+
+    if (A == 'E')
+
+    {
+
+     
+
+        logtext="person1&value2=entry";
+
+        upd2();
+
+        A='x';
+
+    }
+
+     if (A == 'F') {
+
+     
+
+  logtext="person1&value2=exit";
+
+        upd2();
+
+        A='x';
+
+    }
+
+      
+
+    if (A == 'A') {
+
+      x = x + 1;
+
+      y = y - 1;
+
+      id = "1811201";
+
+      name = "person1";
+
+      upd();
+
+      String n = "present=" + String(x) + " absent" + String(y) + "";
+
+      int p1 = 1;
+
+      Serial.print(n);
+
+    }
+
+    if (A == 'B') {
+
+      x = x + 1;
+
+      y = y - 1;
+
+      id = "1811202";
+
+      name = "person2";
+
+      upd();
+
+      String n = "present=" + String(x) + " absent" + String(y) + "";
+
+      Serial.print(n);
+
+      int p2 = 1;
+
+    }
+
+    if (A == 'C') {
+
+      x = x + 1;
+
+      y = y - 1;
+
+      int p3 = 1;
+
+      id = "1811203";
+
+      name = "person3";
+
+      upd();
+
+      String n = "present=" + String(x) + " absent" + String(y) + "";
+
+      Serial.print(n);
+
+    }
+
+    if (A == 'D') {
+
+      x = x + 1;
+
+      y = y - 1;
+
+      int p4 = 1;
+
+      id = "1811204";
+
+      name = "person4";
+
+      upd();
+
+      String n = "present=" + String(x) + " absent" + String(y) + "";
+
+      Serial.print(n);
+
+    }
+
+  }
+
+}
+
+void upd() {
+
+  //Check WiFi connection status
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    WiFiClient client;
+
+    HTTPClient http;
+
+    serverName = "http://hostabcd.xyz/atn2/update.php?value1=" + String(name) + "&value2=" + String(id);
+
+    String serverPath = serverName;
+
+    // Your Domain name with URL path or IP address with path
+
+    http.begin(client, serverPath.c_str());
+
+    // If you need Node-RED/server authentication, insert user and password below
+
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+
+    // Send HTTP GET request
+
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0) {
+
+      //Serial.print("HTTP Response code: ");
+
+      //Serial.println(httpResponseCode);
+
+      String payload = http.getString();
+
+      Serial.println(payload);
+
+    } else {
+
+      Serial.print("Error code: ");
+
+      Serial.println(httpResponseCode);
+
+    }
+
+    // Free resources
+
+    http.end();
+
+  } else {
+
+    Serial.println("WiFi Disconnected");
+
+  }
+
+}
+
+void upd1() {
+
+  //Check WiFi connection status
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    WiFiClient client;
+
+    HTTPClient http;
+
+    serverName = "http://hostabcd.xyz/atn2/mail.php?value1=" + mailid;
+
+    String serverPath = serverName;
+
+    // Your Domain name with URL path or IP address with path
+
+    http.begin(client, serverPath.c_str());
+
+    // If you need Node-RED/server authentication, insert user and password below
+
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+
+    // Send HTTP GET request
+
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0) {
+
+      //Serial.print("HTTP Response code: ");
+
+      //Serial.println(httpResponseCode);
+
+      String payload = http.getString();
+
+      Serial.println(payload);
+
+    } else {
+
+      Serial.print("Error code: ");
+
+      Serial.println(httpResponseCode);
+
+    }
+
+    // Free resources
+
+    http.end();
+
+  } else {
+
+    Serial.println("WiFi Disconnected");
+
+  }
+
+}
+
+void upd2() {
+
+  //Check WiFi connection status
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    WiFiClient client;
+
+    HTTPClient httpa;
+
+    //serverName = "http://hostabcd.xyz/atn2/updateent.php?value1=" +logtext;
+
+    String serverPath = "http://hostabcd.xyz/atn2/updateent.php?value1=" +logtext;
+
+    Serial.print(serverPath);
+
+    // Your Domain name with URL path or IP address with path
+
+    httpa.begin(client, serverPath.c_str());
+
+    // If you need Node-RED/server authentication, insert user and password below
+
+    //http.setAuthorization("REPLACE_WITH_SERVER_USERNAME", "REPLACE_WITH_SERVER_PASSWORD");
+
+    // Send HTTP GET request
+
+    int httpResponseCode = httpa.GET();
+
+    if (httpResponseCode > 0) {
+
+      Serial.print("HTTP Response code: ");
+
+      Serial.println(httpResponseCode);
+
+      String payload = httpa.getString();
+
+      Serial.println(payload);
+
+    } else {
+
+      Serial.print("Error code: ");
+
+      Serial.println(httpResponseCode);
+
+    }
+
+    // Free resources
+
+    httpa.end();
+
+  } else {
+
+    Serial.println("WiFi Disconnected");
+
+  }
+
+}
