@@ -1,0 +1,557 @@
+#include <SPI.h>
+
+#include <MFRC522.h>
+
+#include <LiquidCrystal.h>
+
+#include <Adafruit_Fingerprint.h>
+
+#include <LiquidCrystal_I2C.h>
+
+#include <Servo.h>
+
+LiquidCrystal_I2C lcd(0x20, 16, 2);
+
+Servo myservo;
+
+#if (defined(_AVR) || defined(ESP8266)) && !defined(AVR_ATmega2560_)
+
+// For UNO and others without hardware serial, we must use software serial...
+
+// pin #2 is IN from sensor (GREEN wire)
+
+// pin #3 is OUT from arduino  (WHITE wire)
+
+// Set up the serial port to use softwareserial..
+
+SoftwareSerial mySerial(2, 3);
+
+#else
+
+// On Leonardo/M0/etc, others with hardware serial, use hardware serial!
+
+// #0 is green wire, #1 is white
+
+#define mySerial Serial1
+
+#endif
+
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+
+#define SS_PIN 10
+
+#define RST_PIN 9
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance.
+
+int ent = 0;
+
+void setup() {
+
+  Serial.begin(9600);  // Initiate a serial communication
+
+  SPI.begin();         // Initiate  SPI bus
+
+  mfrc522.PCD_Init();  // Initiate MFRC522
+
+  Serial.println("Approximate your card to the reader...");
+
+  Serial.println();
+
+  lcd.init();
+
+  lcd.backlight();
+
+myservo.attach(12);
+
+  finger.begin(57600);
+
+  delay(5);
+
+  if (finger.verifyPassword()) {
+
+    Serial.println("Found fingerprint sensor!");
+
+  } else {
+
+    Serial.println("Did not find fingerprint sensor :(");
+
+    while (1) {
+
+      delay(1);
+
+    }
+
+  }
+
+  Serial.println(F("Reading sensor parameters"));
+
+  finger.getParameters();
+
+  Serial.print(F("Status: 0x"));
+
+  Serial.println(finger.status_reg, HEX);
+
+  Serial.print(F("Sys ID: 0x"));
+
+  Serial.println(finger.system_id, HEX);
+
+  Serial.print(F("Capacity: "));
+
+  Serial.println(finger.capacity);
+
+  Serial.print(F("Security level: "));
+
+  Serial.println(finger.security_level);
+
+  Serial.print(F("Device address: "));
+
+  Serial.println(finger.device_addr, HEX);
+
+  Serial.print(F("Packet len: "));
+
+  Serial.println(finger.packet_len);
+
+  Serial.print(F("Baud rate: "));
+
+  Serial.println(finger.baud_rate);
+
+  finger.getTemplateCount();
+
+  if (finger.templateCount == 0) {
+
+    Serial.print("Sensor doesn't contain any fingerprint data. Please run the 'enroll' example.");
+
+  } else {
+
+    Serial.println("Waiting for valid finger...");
+
+    Serial.print("Sensor contains ");
+
+    Serial.print(finger.templateCount);
+
+    Serial.println(" templates");
+
+  }
+
+}
+
+void loop() {
+
+  int fdt = getFingerprintID();
+
+  //Serial.print(fdt);
+
+  while (fdt == 1) {
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+
+    lcd.print("PERSON 1 FIN OK");
+
+    lcd.setCursor(0, 1);
+
+    lcd.print("WAITING FOR ID");
+
+    Serial.print("A");
+
+    myservo.write(90);
+
+    while (fdt == 1) {
+
+    if (!mfrc522.PICC_IsNewCardPresent()) {
+
+      return;
+
+    }
+
+    // Select one of the cards
+
+    if (!mfrc522.PICC_ReadCardSerial()) {
+
+      return;
+
+    }
+
+    //Show UID on serial monitor
+
+    Serial.print("UID tag :");
+
+    String content = "";
+
+    byte letter;
+
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+
+      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+
+      Serial.print(mfrc522.uid.uidByte[i], HEX);
+
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+
+    }
+
+    Serial.println();
+
+    Serial.print("Message : ");
+
+    content.toUpperCase();
+
+    if ((content.substring(1) == "57 2C 20 2E"))  //change here the UID of the card/cards that you want to give access
+
+    {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCESS GRANTED     ");
+
+      Serial.print("B");
+
+      fdt = 0;
+
+      myservo.write(0);
+
+    }
+
+    else {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCES DENIED     ");
+
+      delay(1000);
+
+    }
+
+  }
+
+  }
+
+  while (fdt == 3) {
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+
+    lcd.print("PERSON 2 FIN OK");
+
+    lcd.setCursor(0, 1);
+
+    lcd.print("WAITING FOR ID");
+
+    Serial.print("C");
+
+    myservo.write(90);
+
+    while (fdt == 3) {
+
+    if (!mfrc522.PICC_IsNewCardPresent()) {
+
+      return;
+
+    }
+
+    // Select one of the cards
+
+    if (!mfrc522.PICC_ReadCardSerial()) {
+
+      return;
+
+    }
+
+    //Show UID on serial monitor
+
+    Serial.print("UID tag :");
+
+    String content = "";
+
+    byte letter;
+
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+
+      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+
+      Serial.print(mfrc522.uid.uidByte[i], HEX);
+
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+
+    }
+
+    Serial.println();
+
+    Serial.print("Message : ");
+
+    content.toUpperCase();
+
+    if ((content.substring(1) == "57 2C 20 2E"))  //change here the UID of the card/cards that you want to give access
+
+    {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCESS GRANTED     ");
+
+      Serial.print("D");
+
+      myservo.write(0);
+
+    }
+
+    else {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCES DENIED     ");
+
+      delay(1000);
+
+    }
+
+  }
+
+  }
+
+  
+
+  while (fdt == 4) {
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+
+    lcd.print("PERSON 3 FIN OK");
+
+    lcd.setCursor(0, 1);
+
+    lcd.print("WAITING FOR ID");
+
+    Serial.print("E");
+
+    myservo.write(90);
+
+    while(fdt == 4) {
+
+    if (!mfrc522.PICC_IsNewCardPresent()) {
+
+      return;
+
+    }
+
+    // Select one of the cards
+
+    if (!mfrc522.PICC_ReadCardSerial()) {
+
+      return;
+
+    }
+
+    //Show UID on serial monitor
+
+    Serial.print("UID tag :");
+
+    String content = "";
+
+    byte letter;
+
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+
+      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+
+      Serial.print(mfrc522.uid.uidByte[i], HEX);
+
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+
+    }
+
+    Serial.println();
+
+    Serial.print("Message : ");
+
+    content.toUpperCase();
+
+    if ((content.substring(1) == "57 2C 20 2E"))  //change here the UID of the card/cards that you want to give access
+
+    {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCESS GRANTED     ");
+
+      Serial.print("F");
+
+      myservo.write(0);
+
+    }
+
+    else {
+
+      lcd.setCursor(0, 1);
+
+      lcd.print("ACCES DENIED     ");
+
+      delay(1000);
+
+    }
+
+  }
+
+  
+
+  }
+
+}
+
+uint8_t getFingerprintID() {
+
+  uint8_t p = finger.getImage();
+
+  switch (p) {
+
+    case FINGERPRINT_OK:
+
+      //Serial.println("Image taken");
+
+      break;
+
+    case FINGERPRINT_NOFINGER:
+
+      //Serial.println("No finger detected");
+
+      return p;
+
+    case FINGERPRINT_PACKETRECIEVEERR:
+
+      //Serial.println("Communication error");
+
+      return p;
+
+    case FINGERPRINT_IMAGEFAIL:
+
+      //Serial.println("Imaging error");
+
+      return p;
+
+    default:
+
+      //Serial.println("Unknown error");
+
+      return p;
+
+  }
+
+  // OK success!
+
+  p = finger.image2Tz();
+
+  switch (p) {
+
+    case FINGERPRINT_OK:
+
+      //Serial.println("Image converted");
+
+      break;
+
+    case FINGERPRINT_IMAGEMESS:
+
+      //Serial.println("Image too messy");
+
+      return p;
+
+    case FINGERPRINT_PACKETRECIEVEERR:
+
+      //Serial.println("Communication error");
+
+      return p;
+
+    case FINGERPRINT_FEATUREFAIL:
+
+      //Serial.println("Could not find fingerprint features");
+
+      return p;
+
+    case FINGERPRINT_INVALIDIMAGE:
+
+      //Serial.println("Could not find fingerprint features");
+
+      return p;
+
+    default:
+
+      //Serial.println("Unknown error");
+
+      return p;
+
+  }
+
+  // OK converted!
+
+  p = finger.fingerSearch();
+
+  if (p == FINGERPRINT_OK) {
+
+    //Serial.println("Found a print match!");
+
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+
+    //Serial.println("Communication error");
+
+    return p;
+
+  } else if (p == FINGERPRINT_NOTFOUND) {
+
+    //Serial.println("Did not find a match");
+
+    return p;
+
+  } else {
+
+    //Serial.println("Unknown error");
+
+    return p;
+
+  }
+
+  // found a match!
+
+  //Serial.print("Found ID #");
+
+  int x = finger.fingerID;
+
+  //Serial.print(" with confidence of "); Serial.println(finger.confidence);
+
+  return finger.fingerID;
+
+}
+
+// returns -1 if failed, otherwise returns ID #
+
+int getFingerprintIDez() {
+
+  uint8_t p = finger.getImage();
+
+  if (p != FINGERPRINT_OK) return -1;
+
+  p = finger.image2Tz();
+
+  if (p != FINGERPRINT_OK) return -1;
+
+  p = finger.fingerFastSearch();
+
+  if (p != FINGERPRINT_OK) return -1;
+
+  // found a match!
+
+  //Serial.print("Found ID #");
+
+  //Serial.print(" with confidence of "); Serial.println(finger.confidence);
+
+  return finger.fingerID;
+
+}
